@@ -97,7 +97,9 @@ async function main() {
       const { x, y } = jobs.shift();
       try {
         const bitmap = await fetchTile(x, y);
-        ctx.drawImage(bitmap, x * TILE_SIZE, y * TILE_SIZE);
+        // Perto dos polos o servidor devolve tiles de menor resolução (ex.: 256×256)
+        // que cobrem a célula inteira; por isso cada tile é esticado para TILE_SIZE.
+        ctx.drawImage(bitmap, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         bitmap.close();
       } catch (error) {
         failed++;
