@@ -19,6 +19,9 @@ jobs:
       - name: Verificar sintaxe do JavaScript
         run: for file in popup.js extractor.js lib/*.js; do node --check "$file"; done
 
+      - name: Testes unitários
+        run: node --test 'test/**/*.test.js'
+
       - name: Build
         run: python3 build.py
 

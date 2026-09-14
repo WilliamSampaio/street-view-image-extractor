@@ -1,5 +1,7 @@
 import { TILE_SIZE, tileUrls, zoomLevels } from './lib/pano.js';
 import { injectGPano } from './lib/xmp.js';
+import { fetchPanoOrientation } from './lib/metadata.js';
+import { buildOrientation, bearingToPixelX } from './lib/orientation.js';
 
 const CONCURRENCY = 8;
 const RETRIES = 3;
@@ -21,6 +23,15 @@ const outHeight = Number(params.get('outHeight')) || null;
 const quality = Number(params.get('quality')) || 0.92;
 const lat = params.get('lat');
 const lng = params.get('lng');
+const debugMode = params.get('debug') === '1';
+
+/** Cores e rótulos dos marcadores cardeais para o modo de debug. */
+const CARDINALS = [
+  { label: 'N', bearing: 0, color: '#ff3b30' },
+  { label: 'E', bearing: 90, color: '#34c759' },
+  { label: 'S', bearing: 180, color: '#007aff' },
+  { label: 'W', bearing: 270, color: '#ffcc00' },
+];
 
 function setStatus(text) {
   $('status').textContent = text;
@@ -41,6 +52,27 @@ async function fetchTile(x, y) {
     await sleep(500 * (attempt + 1));
   }
   throw lastError;
+}
+
+/** Serializa a orientação no formato do `panorama.json` opcional (ver README). */
+function toOrientationJson(orientation) {
+  const json = {
+    panoId: orientation.panoId,
+    location: { lat: orientation.lat, lng: orientation.lng },
+    image: { width: orientation.width, height: orientation.height },
+  };
+  if (orientation.heading !== null) {
+    json.orientation = {
+      heading: orientation.heading,
+      pitch: orientation.pitch,
+      roll: orientation.roll,
+      northX: orientation.northX,
+      eastX: orientation.eastX,
+      southX: orientation.southX,
+      westX: orientation.westX,
+    };
+  }
+  return json;
 }
 
 function buildFilename(width, height) {
@@ -68,9 +100,37 @@ function download(url, filename) {
   link.click();
 }
 
+/** Desenha uma cópia da panorâmica com linhas verticais N/E/S/W, para depuração. */
+async function drawDebugOverlay(source, orientation) {
+  const { width, height } = source;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(source, 0, 0);
+
+  ctx.font = `${Math.round(height / 40)}px sans-serif`;
+  ctx.textBaseline = 'top';
+  for (const { label, bearing, color } of CARDINALS) {
+    const x = bearingToPixelX(bearing, orientation.heading, width);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(2, Math.round(width / 2048));
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.fillRect(x, 0, ctx.measureText(label).width + 12, height / 40 + 8);
+    ctx.fillStyle = '#000';
+    ctx.fillText(label, x + 6, 4);
+  }
+  return canvas;
+}
+
 async function main() {
   const level = zoomLevels(pano.width, pano.height).find((l) => l.zoom === zoom);
   if (!pano.panoId || !level) throw new Error('Parâmetros inválidos.');
+
+  // Busca a orientação real em paralelo ao download dos tiles; nunca lança erro.
+  const orientationPromise = fetchPanoOrientation(pano.panoId);
 
   $('pano-id').textContent = pano.panoId;
   $('resolution').textContent =
@@ -123,20 +183,66 @@ async function main() {
   }
   const { width, height } = output;
 
+  const meta = await orientationPromise;
+  const orientation = buildOrientation({
+    panoId: pano.panoId,
+    lat: meta?.lat ?? (lat !== null ? Number(lat) : null),
+    lng: meta?.lng ?? (lng !== null ? Number(lng) : null),
+    heading: meta?.heading ?? null,
+    pitch: meta?.pitch ?? null,
+    roll: meta?.roll ?? null,
+    width,
+    height,
+  });
+
   setStatus('Gerando JPEG…');
   const jpeg = await output.convertToBlob({ type: 'image/jpeg', quality });
-  const blob = await injectGPano(jpeg, width, height);
+  const blob = await injectGPano(jpeg, width, height, orientation);
 
   const preview = $('preview');
   preview.width = Math.min(PREVIEW_WIDTH, width);
   preview.height = Math.round((preview.width * height) / width);
   preview.getContext('2d').drawImage(output, 0, 0, preview.width, preview.height);
+
+  if (debugMode && orientation.heading !== null) {
+    const debugCanvas = await drawDebugOverlay(output, orientation);
+    const debugPreview = $('debug-preview');
+    debugPreview.width = preview.width;
+    debugPreview.height = preview.height;
+    debugPreview.getContext('2d').drawImage(debugCanvas, 0, 0, preview.width, preview.height);
+    const debugBlob = await debugCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
+    const debugUrl = URL.createObjectURL(debugBlob);
+    const debugFilename = buildFilename(width, height).replace('.jpg', '_debug.jpg');
+    $('download-debug').addEventListener('click', () => download(debugUrl, debugFilename));
+    $('debug').hidden = false;
+  }
   output.width = output.height = 0; // libera a memória do canvas
 
   const url = URL.createObjectURL(blob);
   const filename = buildFilename(width, height);
   download(url, filename);
   $('download').addEventListener('click', () => download(url, filename));
+
+  if (orientation.lat !== null || orientation.heading !== null) {
+    const jsonBlob = new Blob([JSON.stringify(toOrientationJson(orientation), null, 2)], {
+      type: 'application/json',
+    });
+    const jsonUrl = URL.createObjectURL(jsonBlob);
+    const jsonFilename = buildFilename(width, height).replace(/\.jpg$/, '.json');
+    $('download-json').hidden = false;
+    $('download-json').addEventListener('click', () => download(jsonUrl, jsonFilename));
+  }
+
+  const orientationEl = $('orientation');
+  if (orientation.heading !== null) {
+    orientationEl.textContent =
+      `📍 ${orientation.lat?.toFixed(6)}, ${orientation.lng?.toFixed(6)} · ` +
+      `🧭 Heading: ${orientation.heading.toFixed(2)}° · Norte: x=${orientation.northX}`;
+    orientationEl.hidden = false;
+  } else if (orientation.lat !== null) {
+    orientationEl.textContent = `📍 ${orientation.lat.toFixed(6)}, ${orientation.lng.toFixed(6)} · orientação indisponível`;
+    orientationEl.hidden = false;
+  }
 
   const sizeMb = (blob.size / 1024 / 1024).toFixed(1);
   const warning = failed ? ` Atenção: ${failed} tiles falharam e ficaram pretos.` : '';

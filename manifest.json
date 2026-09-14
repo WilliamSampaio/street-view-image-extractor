@@ -22,6 +22,7 @@
   "host_permissions": [
     "https://streetviewpixels-pa.googleapis.com/*",
     "https://cbk0.google.com/*",
-    "https://lh3.ggpht.com/*"
+    "https://lh3.ggpht.com/*",
+    "https://www.google.com/maps/photometa/*"
   ]
 }

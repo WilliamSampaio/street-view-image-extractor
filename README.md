@@ -34,6 +34,7 @@ visualizadores 360°, óculos de realidade virtual e softwares 3D.
 - 🖼️ **Qualidade máxima:** monta a imagem original em até **16384×8192 pixels** (134 MP).
 - 🎚️ **Você escolhe o tamanho:** Máxima, 8K, 5.7K, 4K, 2K e outras, conforme a necessidade.
 - 🌐 **Pronta para 360°:** o JPEG já sai com metadados GPano e é reconhecido como foto 360° pelo Google Fotos, Facebook e outros visualizadores.
+- 🧭 **Orientação geográfica real:** identifica onde fica o **norte verdadeiro** dentro da imagem e grava isso nos metadados (veja [Orientação geográfica](#orientação-geográfica)).
 - ⚡ **Rápida:** baixa os pedaços da imagem em paralelo e mostra o progresso em tempo real.
 - 🔒 **Privada:** tudo acontece no seu navegador. Não há servidor, conta ou coleta de dados.
 - 🧩 **Leve:** menos de 30 KB e só pede acesso à aba quando você clica na extensão.
@@ -83,6 +84,39 @@ Funciona no **Google Chrome, Microsoft Edge, Brave, Opera, Vivaldi** e outros na
 As opções disponíveis variam conforme a panorâmica: as mais antigas vão até 13312×6656.
 A extensão lembra a última resolução e a qualidade escolhidas.
 
+## Orientação geográfica
+
+Toda panorâmica do Street View tem um **heading**: o azimute (direção da bússola, 0°=Norte,
+90°=Leste, 180°=Sul, 270°=Oeste), medido a partir do **Norte verdadeiro/geográfico** — não o
+Norte magnético — que aponta para o **centro horizontal** da imagem equiretangular. A extensão
+busca esse valor nos metadados do próprio Google (não é o `h=` que aparece na URL do Maps, que é
+só a direção da câmera do visualizador) e calcula:
+
+```text
+northX = coordenada X onde o Norte verdadeiro aparece na imagem exportada
+```
+
+Esse valor é mostrado na tela de extração (📍 coordenadas, 🧭 heading e 🧭 posição do Norte) e
+gravado no próprio JPEG como `GPano:PoseHeadingDegrees` (mais `PosePitchDegrees` e
+`PoseRollDegrees`, quando disponíveis) — propriedades oficiais da especificação
+[Photo Sphere XMP](https://developers.google.com/streetview/spherical-metadata). Quando a
+panorâmica não expõe esses metadados, a extensão simplesmente não grava as propriedades `Pose*`,
+sem afetar o restante do arquivo.
+
+Opcionalmente, é gerado também um `panorama.json` com as mesmas coordenadas e ângulos, útil para
+integrar a imagem com aplicações GIS.
+
+A imagem em si **não é rotacionada**: ela sai exatamente como o Google monta, e a extensão apenas
+informa onde o Norte está dentro dela.
+
+<details>
+<summary><strong>Modo de debug (desenvolvedores)</strong></summary>
+
+Adicionando `?debug=1` à URL da aba de extração, uma segunda imagem é gerada com linhas verticais
+coloridas marcando N, E, S e W sobre a panorâmica — só para conferência visual, nunca afeta o JPEG
+normal baixado pelo usuário.
+</details>
+
 ## Perguntas frequentes
 
 <details>
@@ -122,8 +156,8 @@ O suporte existe, mas é experimental. As panorâmicas oficiais do Street View s
 <details>
 <summary><strong>A extensão coleta meus dados?</strong></summary>
 
-Não. Ela lê apenas o endereço da aba ativa quando você clica no ícone e baixa as imagens diretamente
-dos servidores do Google. Nada é enviado a terceiros.
+Não. Ela lê apenas o endereço da aba ativa quando você clica no ícone e baixa as imagens e os
+metadados de orientação diretamente dos servidores do Google. Nada é enviado a terceiros.
 </details>
 
 ## Para desenvolvedores
@@ -143,8 +177,17 @@ foi incluído. Não há dependências além do Python 3.
 | `popup.html` / `popup.js` | Lê a panorâmica da URL e oferece as resoluções |
 | `extractor.html` / `extractor.js` | Baixa os tiles, monta, redimensiona e salva o JPEG |
 | `lib/pano.js` | Leitura da URL, níveis de zoom e endereços dos tiles |
-| `lib/xmp.js` | Metadados GPano para visualizadores 360° |
+| `lib/metadata.js` | Busca heading/pitch/roll/lat/lng reais da panorâmica |
+| `lib/orientation.js` | Matemática pixel ↔ azimute (bearing) e Norte verdadeiro |
+| `lib/xmp.js` | Metadados GPano (incluindo `Pose*`) para visualizadores 360° |
 | `build.py` | Gera a pasta e o `.zip` em `dist/` |
+
+**Testes:** a matemática de orientação (`lib/orientation.js`) tem testes unitários com o runner
+nativo do Node (sem dependências extras):
+
+```sh
+node --test 'test/**/*.test.js'
+```
 
 **Releases automáticas:** cada push na branch `master` executa o
 [workflow de release](.github/workflows/release.yml), que gera o build e publica uma nova versão
@@ -170,7 +213,10 @@ Distribuído sob a [Licença MIT](LICENSE).
 
 **Street View Image Extractor** is a free, open-source Chrome extension that downloads Google Street
 View panoramas as **equirectangular 360° images** (up to 16384×8192) with embedded GPano metadata,
-ready for VR headsets, 360° photo viewers, Blender, Unity and Unreal Engine skyboxes.
+ready for VR headsets, 360° photo viewers, Blender, Unity and Unreal Engine skyboxes. It also
+detects the panorama's real-world **heading** and computes where **true north** falls inside the
+exported image (`GPano:PoseHeadingDegrees` and an optional `panorama.json` sidecar), so the image
+can be placed correctly in GIS/mapping applications.
 
 1. Download the `.zip` from the [latest release](https://github.com/WilliamSampaio/street-view-image-extractor/releases/latest) and extract it.
 2. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked** and select the extracted folder.
