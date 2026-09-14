@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="popup">
+    <h1>Street View 360°</h1>
+
+    <div id="not-found" hidden>
+      <p>Nenhuma panorâmica encontrada nesta aba.</p>
+      <p class="muted">Abra o Google Maps, entre no Street View e clique na extensão novamente.</p>
+    </div>
+
+    <form id="form" hidden>
+      <p class="muted">Panorâmica: <code id="pano-id"></code></p>
+      <p class="muted" id="dims-note" hidden>
+        A URL não informa a resolução; assumindo 16384×8192.
+      </p>
+
+      <label>
+        Resolução
+        <select id="resolution"></select>
+      </label>
+      <p class="muted hint" id="resolution-hint"></p>
+
+      <label>
+        Qualidade JPEG: <span id="quality-value">92</span>%
+        <input id="quality" type="range" min="70" max="100" value="92" />
+      </label>
+
+      <button type="submit">Extrair imagem</button>
+    </form>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Versão = MAJOR.MINOR do manifest.json + número da execução (ex.: 1.0.42).
+      - name: Definir versão
+        id: version
+        run: |
+          base=$(python3 -c "import json; print('.'.join(json.load(open('manifest.json'))['version'].split('.')[:2]))")
+          echo "version=${base}.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        run: python3 build.py --version "${{ steps.version.outputs.version }}"
+
+      - name: Criar release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" dist/*.zip \
+            --target "${GITHUB_SHA}" \
+            --title "v${VERSION}" \
+            --generate-notes

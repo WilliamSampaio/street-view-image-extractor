@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Street View Image Extractor",
+  "version": "1.0.0",
+  "description": "Baixe panorâmicas do Google Street View como imagens 360° equiretangulares em até 16K.",
+  "homepage_url": "https://github.com/WilliamSampaio/street-view-image-extractor",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Extrair panorâmica 360°",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
+  },
+  "permissions": ["activeTab"],
+  "host_permissions": [
+    "https://streetviewpixels-pa.googleapis.com/*",
+    "https://cbk0.google.com/*",
+    "https://lh3.ggpht.com/*"
+  ]
+}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Extraindo panorâmica…</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="page">
+    <main>
+      <h1>Street View 360°</h1>
+      <p class="muted">Panorâmica <code id="pano-id"></code> · <span id="resolution"></span></p>
+
+      <progress id="progress" value="0" max="1"></progress>
+      <p id="status">Iniciando…</p>
+
+      <div id="result" hidden>
+        <canvas id="preview"></canvas>
+        <p><button id="download" type="button">Baixar novamente</button></p>
+      </div>
+    </main>
+
+    <script type="module" src="extractor.js"></script>
+  </body>
+</html>
