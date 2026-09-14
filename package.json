@@ -1,0 +1,15 @@
+{
+  "name": "street-view-image-extractor",
+  "version": "1.0.0",
+  "description": "Baixe panorâmicas do Google Street View como imagens 360° equiretangulares em até 16K.",
+  "private": true,
+  "scripts": {
+    "build": "python3 build.py",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WilliamSampaio/street-view-image-extractor.git"
+  },
+  "license": "MIT"
+}

@@ -165,12 +165,13 @@ metadados de orientação diretamente dos servidores do Google. Nada é enviado 
 ```sh
 git clone https://github.com/WilliamSampaio/street-view-image-extractor.git
 cd street-view-image-extractor
-python3 build.py
+npm run build
 ```
 
 O build gera `dist/street-view-image-extractor/`, a pasta para carregar no navegador, e um `.zip`
 para distribuição. Ele valida o `manifest.json` e confere se todo arquivo referenciado no HTML/JS
-foi incluído. Não há dependências além do Python 3.
+foi incluído. `npm run build` é só um atalho para `python3 build.py` (chamável direto, sem npm);
+a extensão em si não usa bundler nem dependências além do Python 3.
 
 | Arquivo | Função |
 |---|---|
@@ -186,7 +187,7 @@ foi incluído. Não há dependências além do Python 3.
 nativo do Node (sem dependências extras):
 
 ```sh
-node --test 'test/**/*.test.js'
+npm test
 ```
 
 **Releases automáticas:** cada push na branch `master` executa o
