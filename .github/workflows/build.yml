@@ -1,0 +1,29 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verificar sintaxe do JavaScript
+        run: for file in popup.js extractor.js lib/*.js; do node --check "$file"; done
+
+      - name: Build
+        run: python3 build.py
+
+      - name: Publicar pacote de teste
+        uses: actions/upload-artifact@v4
+        with:
+          name: street-view-image-extractor
+          path: dist/street-view-image-extractor/
