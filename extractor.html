@@ -14,17 +14,19 @@
       <p id="status">Iniciando…</p>
 
       <div id="result" hidden>
-        <canvas id="preview"></canvas>
+        <div id="preview-wrap">
+          <canvas id="preview"></canvas>
+          <div id="cardinal-overlay" hidden></div>
+        </div>
         <p id="orientation" class="muted" hidden></p>
+        <label id="toggle-cardinals-row" hidden>
+          <input id="toggle-cardinals" type="checkbox" />
+          Mostrar linhas cardeais (N/E/S/W)
+        </label>
         <p>
           <button id="download" type="button">Baixar novamente</button>
           <button id="download-json" type="button" hidden>Baixar dados (.json)</button>
         </p>
-        <div id="debug" hidden>
-          <p class="muted">Modo de debug (?debug=1): N/E/S/W marcados sobre a panorâmica.</p>
-          <canvas id="debug-preview"></canvas>
-          <p><button id="download-debug" type="button">Baixar imagem de debug</button></p>
-        </div>
       </div>
     </main>
 

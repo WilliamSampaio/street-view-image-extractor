@@ -71,3 +71,44 @@ button {
 #orientation {
   font-size: 0.85rem;
 }
+
+#toggle-cardinals-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+
+#toggle-cardinals-row input {
+  width: auto;
+  margin: 0;
+}
+
+#preview-wrap {
+  position: relative;
+  display: block;
+}
+
+#cardinal-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cardinal-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  transform: translateX(-1px);
+}
+
+.cardinal-label {
+  position: absolute;
+  top: 0;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #000;
+  white-space: nowrap;
+}

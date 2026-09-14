@@ -1,7 +1,7 @@
 import { TILE_SIZE, tileUrls, zoomLevels } from './lib/pano.js';
 import { injectGPano } from './lib/xmp.js';
 import { fetchPanoOrientation } from './lib/metadata.js';
-import { buildOrientation, bearingToPixelX } from './lib/orientation.js';
+import { buildOrientation } from './lib/orientation.js';
 
 const CONCURRENCY = 8;
 const RETRIES = 3;
@@ -23,14 +23,13 @@ const outHeight = Number(params.get('outHeight')) || null;
 const quality = Number(params.get('quality')) || 0.92;
 const lat = params.get('lat');
 const lng = params.get('lng');
-const debugMode = params.get('debug') === '1';
 
-/** Cores e rótulos dos marcadores cardeais para o modo de debug. */
+/** Cores e rótulos dos marcadores cardeais mostrados sobre o preview. */
 const CARDINALS = [
-  { label: 'N', bearing: 0, color: '#ff3b30' },
-  { label: 'E', bearing: 90, color: '#34c759' },
-  { label: 'S', bearing: 180, color: '#007aff' },
-  { label: 'W', bearing: 270, color: '#ffcc00' },
+  { label: 'N', key: 'northX', color: '#ff3b30' },
+  { label: 'E', key: 'eastX', color: '#34c759' },
+  { label: 'S', key: 'southX', color: '#007aff' },
+  { label: 'W', key: 'westX', color: '#ffcc00' },
 ];
 
 function setStatus(text) {
@@ -100,29 +99,31 @@ function download(url, filename) {
   link.click();
 }
 
-/** Desenha uma cópia da panorâmica com linhas verticais N/E/S/W, para depuração. */
-async function drawDebugOverlay(source, orientation) {
-  const { width, height } = source;
-  const canvas = new OffscreenCanvas(width, height);
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(source, 0, 0);
+/**
+ * Popula a camada sobre o preview com uma linha vertical + rótulo para cada
+ * ponto cardeal, posicionados por porcentagem da largura (não em pixels),
+ * para acompanhar o preview em qualquer tamanho de tela sem redesenhar nada.
+ * Não toca no canvas/JPEG exportado.
+ */
+function renderCardinalOverlay(orientation) {
+  const overlay = $('cardinal-overlay');
+  overlay.replaceChildren();
+  for (const { label, key, color } of CARDINALS) {
+    const leftPct = (orientation[key] / orientation.width) * 100;
 
-  ctx.font = `${Math.round(height / 40)}px sans-serif`;
-  ctx.textBaseline = 'top';
-  for (const { label, bearing, color } of CARDINALS) {
-    const x = bearingToPixelX(bearing, orientation.heading, width);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(2, Math.round(width / 2048));
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-    ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.fillRect(x, 0, ctx.measureText(label).width + 12, height / 40 + 8);
-    ctx.fillStyle = '#000';
-    ctx.fillText(label, x + 6, 4);
+    const line = document.createElement('div');
+    line.className = 'cardinal-line';
+    line.style.left = `${leftPct}%`;
+    line.style.background = color;
+    overlay.append(line);
+
+    const tag = document.createElement('span');
+    tag.className = 'cardinal-label';
+    tag.style.left = `${leftPct}%`;
+    tag.style.background = color;
+    tag.textContent = label;
+    overlay.append(tag);
   }
-  return canvas;
 }
 
 async function main() {
@@ -203,20 +204,16 @@ async function main() {
   preview.width = Math.min(PREVIEW_WIDTH, width);
   preview.height = Math.round((preview.width * height) / width);
   preview.getContext('2d').drawImage(output, 0, 0, preview.width, preview.height);
-
-  if (debugMode && orientation.heading !== null) {
-    const debugCanvas = await drawDebugOverlay(output, orientation);
-    const debugPreview = $('debug-preview');
-    debugPreview.width = preview.width;
-    debugPreview.height = preview.height;
-    debugPreview.getContext('2d').drawImage(debugCanvas, 0, 0, preview.width, preview.height);
-    const debugBlob = await debugCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
-    const debugUrl = URL.createObjectURL(debugBlob);
-    const debugFilename = buildFilename(width, height).replace('.jpg', '_debug.jpg');
-    $('download-debug').addEventListener('click', () => download(debugUrl, debugFilename));
-    $('debug').hidden = false;
-  }
   output.width = output.height = 0; // libera a memória do canvas
+
+  if (orientation.heading !== null) {
+    renderCardinalOverlay(orientation);
+    const toggle = $('toggle-cardinals');
+    toggle.addEventListener('change', () => {
+      $('cardinal-overlay').hidden = !toggle.checked;
+    });
+    $('toggle-cardinals-row').hidden = false;
+  }
 
   const url = URL.createObjectURL(blob);
   const filename = buildFilename(width, height);

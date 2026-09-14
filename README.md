@@ -109,13 +109,9 @@ integrar a imagem com aplicações GIS.
 A imagem em si **não é rotacionada**: ela sai exatamente como o Google monta, e a extensão apenas
 informa onde o Norte está dentro dela.
 
-<details>
-<summary><strong>Modo de debug (desenvolvedores)</strong></summary>
-
-Adicionando `?debug=1` à URL da aba de extração, uma segunda imagem é gerada com linhas verticais
-coloridas marcando N, E, S e W sobre a panorâmica — só para conferência visual, nunca afeta o JPEG
-normal baixado pelo usuário.
-</details>
+Quando a orientação está disponível, a tela de extração também oferece **"Mostrar linhas
+cardeais (N/E/S/W)"**: um toggle que sobrepõe linhas verticais coloridas ao preview marcando os
+quatro pontos cardeais, só para conferência visual — nunca altera o JPEG baixado.
 
 ## Perguntas frequentes
 
